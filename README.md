@@ -6,6 +6,8 @@ Live prototype: https://notoow.github.io/lumetri-color-parser/
 
 The current prototype parses 3D LUTs, samples a gray ramp plus RGB grid, fits nine Lumetri-like parameters with least squares, and generates a diagnostic chart showing tone-curve and chroma-related error.
 
+The hosted prototype also includes a browser-only LUT photo preview workbench: load the demo, or choose your own `.cube` and image file to inspect input, LUT output, and an amplified difference view.
+
 ## What It Does
 
 - Parses Iridas/Adobe 3D `.cube` LUT files.

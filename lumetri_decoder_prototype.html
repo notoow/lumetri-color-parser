@@ -354,6 +354,86 @@
   }
   .metric .k{font-size:10.5px;color:#888;margin-bottom:3px;}
   .metric .v{font-size:15px;color:#f0f0f0;font-weight:600;}
+  .workbench{
+    border-top:1px solid #2a2a2a;
+    margin-top:18px;
+    padding-top:18px;
+  }
+  .preview-controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+    margin:10px 0;
+  }
+  .file-control{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    min-height:30px;
+    background:#151515;
+    border:1px solid #2a2a2a;
+    border-radius:4px;
+    padding:5px 8px;
+    color:#aaa;
+    font-size:11px;
+  }
+  .file-control input{
+    max-width:190px;
+    color:#d6d6d6;
+    font-size:11px;
+  }
+  .tool-button{
+    min-height:30px;
+    border:1px solid #3a3a3a;
+    border-radius:4px;
+    background:#202020;
+    color:#efefef;
+    padding:5px 10px;
+    font-size:11px;
+    cursor:pointer;
+  }
+  .tool-button:hover{background:#292929;}
+  .preview-status{
+    min-height:17px;
+    color:#8f8f8f;
+    font-size:11.5px;
+    margin-bottom:10px;
+  }
+  .preview-status[data-tone="ok"]{color:#8fd7ae;}
+  .preview-status[data-tone="warn"]{color:#ffb454;}
+  .preview-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+  }
+  .preview-panel{
+    margin:0;
+  }
+  .preview-panel canvas{
+    display:block;
+    width:100%;
+    aspect-ratio:3 / 2;
+    background:#0f0f0f;
+    border:1px solid #2a2a2a;
+    border-radius:4px;
+  }
+  .preview-panel figcaption{
+    color:#999;
+    font-size:10.5px;
+    margin-top:5px;
+  }
+  .preview-metrics{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+  .preview-metrics .metric .v{
+    font-size:12px;
+    line-height:1.35;
+  }
+  @media (max-width:860px){
+    .preview-grid{grid-template-columns:1fr;}
+    .preview-metrics{grid-template-columns:1fr 1fr;}
+  }
 </style>
 </head>
 <body>
@@ -470,6 +550,37 @@
         <div class="metric"><div class="k">채도-오차 상관계수</div><div class="v">0.27</div></div>
         <div class="metric"><div class="k">한계값 도달 슬라이더</div><div class="v" style="color:#ffb454;">Shadows</div></div>
       </div>
+
+      <div class="workbench">
+        <div class="reference-title">직접 사진 미리보기</div>
+        <div class="preview-controls">
+          <label class="file-control"><span>LUT</span><input id="preview-lut-file" type="file" accept=".cube"></label>
+          <label class="file-control"><span>Image</span><input id="preview-image-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
+          <button class="tool-button" type="button" id="preview-demo-button">Demo</button>
+          <button class="tool-button" type="button" id="preview-render-button">Render</button>
+        </div>
+        <div class="preview-status" id="preview-status">대기 중</div>
+        <div class="preview-grid">
+          <figure class="preview-panel">
+            <canvas id="preview-input-canvas"></canvas>
+            <figcaption>Input</figcaption>
+          </figure>
+          <figure class="preview-panel">
+            <canvas id="preview-lut-canvas"></canvas>
+            <figcaption>LUT Output</figcaption>
+          </figure>
+          <figure class="preview-panel">
+            <canvas id="preview-diff-canvas"></canvas>
+            <figcaption>Difference ×4</figcaption>
+          </figure>
+        </div>
+        <div class="metrics-grid preview-metrics">
+          <div class="metric"><div class="k">LUT 변화량 RMSE</div><div class="v" id="preview-metric-rmse">-</div></div>
+          <div class="metric"><div class="k">평균 RGB 이동</div><div class="v" id="preview-metric-mean">-</div></div>
+          <div class="metric"><div class="k">최대 픽셀 변화</div><div class="v" id="preview-metric-max">-</div></div>
+          <div class="metric"><div class="k">렌더 크기</div><div class="v" id="preview-metric-size">-</div></div>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -552,5 +663,6 @@ Object.keys(PARAMS).forEach(buildRow);
 // shadows pin note visibility
 document.getElementById('shadow-pin-note').style.display = PARAMS.shadows.pinned ? 'block' : 'none';
 </script>
+<script src="docs/assets/lut_workbench.js"></script>
 </body>
 </html>
