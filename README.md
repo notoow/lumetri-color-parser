@@ -43,6 +43,7 @@ pip install -r requirements.txt
 ```powershell
 python fit_lut.py ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube"
 python make_chart.py
+python make_reference_chart.py ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" -o docs/assets/action6_reference_transform.png --summary docs/assets/action6_reference_transform.json
 ```
 
 Generated files are written to `outputs/`:
@@ -51,11 +52,20 @@ Generated files are written to `outputs/`:
 - `fit_summary.json`
 - `fit_chart.png`
 
+Reference preview assets can be written to `docs/assets/` when they are meant to be published with GitHub Pages.
+
+## Reference Patch Preview
+
+There is no single universal RGB value for a physical 18% gray card inside a camera-log LUT. The chart below uses normalized LUT-domain test patches instead: neutral grays, 75% video color-bar values, Rec.709/sRGB primaries and secondaries, plus a few practical memory-color samples.
+
+![Reference RGB patches through the Action 6 LUT](docs/assets/action6_reference_transform.png)
+
 ## Files
 
 - `lut_parser.py` - `.cube` parser and trilinear sampler.
 - `lumetri_model.py` - approximate Lumetri Basic Correction model.
 - `fit_lut.py` - least-squares fitting CLI.
 - `make_chart.py` - diagnostic chart generator.
+- `make_reference_chart.py` - before/after reference RGB patch chart generator.
 - `lumetri_decoder_prototype.html` - static UI prototype.
 - `.cube/` - sample LUTs used for experiments.
