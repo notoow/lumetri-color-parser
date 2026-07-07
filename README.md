@@ -2,6 +2,8 @@
 
 Experimental tooling for fitting a 3D `.cube` LUT to an approximate Adobe Premiere Pro Lumetri Color **Basic Correction** slider model.
 
+Live prototype: https://notoow.github.io/lumetri-color-parser/
+
 The current prototype parses 3D LUTs, samples a gray ramp plus RGB grid, fits nine Lumetri-like parameters with least squares, and generates a diagnostic chart showing tone-curve and chroma-related error.
 
 ## What It Does
