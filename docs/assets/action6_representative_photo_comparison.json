@@ -1,6 +1,6 @@
 {
   "source_path": "docs\\assets\\representative_photo_input.png",
-  "cube_path": ".cube\\[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube",
+  "cube_path": ".cube\\[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube",
   "fit_summary_path": "outputs\\fit_summary.json",
   "preview_note": "Synthetic reference photo generated for visual judgment. RGB values are treated as LUT-domain code values, not as a camera-calibrated D-LogM capture.",
   "image_shape": [

@@ -43,10 +43,10 @@ pip install -r requirements.txt
 ## Run A Fit
 
 ```powershell
-python fit_lut.py ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube"
+python fit_lut.py ".cube/[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube"
 python make_chart.py
-python make_reference_chart.py ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" -o docs/assets/action6_reference_transform.png --summary docs/assets/action6_reference_transform.json
-python make_photo_preview.py docs/assets/representative_photo_input.png ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" --fit-summary outputs/fit_summary.json -o docs/assets/action6_representative_photo_comparison.png --output-json docs/assets/action6_representative_photo_comparison.json --lut-output docs/assets/action6_representative_photo_lut.png --lumetri-output docs/assets/action6_representative_photo_lumetri.png
+python make_reference_chart.py ".cube/[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" -o docs/assets/action6_reference_transform.png --summary docs/assets/action6_reference_transform.json
+python make_photo_preview.py docs/assets/representative_photo_input.png ".cube/[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" --fit-summary outputs/fit_summary.json -o docs/assets/action6_representative_photo_comparison.png --output-json docs/assets/action6_representative_photo_comparison.json --lut-output docs/assets/action6_representative_photo_lut.png --lumetri-output docs/assets/action6_representative_photo_lumetri.png
 ```
 
 Generated files are written to `outputs/`:

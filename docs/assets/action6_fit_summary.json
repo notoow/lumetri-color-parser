@@ -1,0 +1,28 @@
+{
+  "cube_path": ".cube\\[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube",
+  "cube_title": null,
+  "lut_size": 33,
+  "sample_count": 849,
+  "fitted": {
+    "exposure": 0.14414691087607262,
+    "contrast": 50.93877530904022,
+    "highlights": -41.106653496453845,
+    "shadows": -99.99999999999994,
+    "whites": -5.184230824055078,
+    "blacks": 2.9117670892428666,
+    "temperature": -1.9035222798091578,
+    "tint": -6.837848065323163,
+    "saturation": 109.56772803255316
+  },
+  "rmse": {
+    "all": 0.042466419285914284,
+    "all_8bit": 10.828936917908143,
+    "gray": 0.03854762344485234,
+    "gray_8bit": 9.829643978437346,
+    "grid": 0.04307733089126317,
+    "grid_8bit": 10.984719377272109
+  },
+  "chroma_error_correlation": 0.2707057566625286,
+  "neutral_error_8bit": 7.109130295241209,
+  "saturated_error_8bit": 10.590218782856596
+}

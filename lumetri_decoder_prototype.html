@@ -456,13 +456,16 @@
       <div class="section" id="sec-basic">
         <div class="section-head" onclick="toggleSection('sec-basic')"><span class="tri">▼</span>Basic Correction</div>
         <div class="section-body">
-          <div class="input-lut-row">Input LUT <span class="fake-select">None ▾</span></div>
+          <div class="input-lut-row">Input LUT <span class="fake-select" id="input-lut-name">None ▾</span></div>
 
           <div class="subhead">White Balance
             <span class="wb-btns"><span class="icon-btn" title="WB Selector">✎</span></span>
           </div>
           <div class="ctrl-row" id="row-temperature"></div>
           <div class="ctrl-row" id="row-tint"></div>
+
+          <div class="subhead" style="margin-top:14px;">Saturation</div>
+          <div class="ctrl-row" id="row-saturation"></div>
 
           <div class="subhead">Tone
             <span class="auto-btn">Auto</span>
@@ -474,9 +477,6 @@
           <div class="pin-note" id="shadow-pin-note" style="display:none;">⚠ 슬라이더가 한계값에 도달 — 이 구간은 근사 정확도가 낮습니다</div>
           <div class="ctrl-row" id="row-whites"></div>
           <div class="ctrl-row" id="row-blacks"></div>
-
-          <div class="subhead" style="margin-top:14px;">Saturation</div>
-          <div class="ctrl-row" id="row-saturation"></div>
         </div>
       </div>
 
@@ -558,8 +558,10 @@
           <label class="file-control"><span>Image</span><input id="preview-image-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
           <button class="tool-button" type="button" id="preview-demo-button">Demo</button>
           <button class="tool-button" type="button" id="preview-render-button">Render</button>
+          <button class="tool-button" type="button" id="preview-fit-button">Analyze Sliders</button>
         </div>
         <div class="preview-status" id="preview-status">대기 중</div>
+        <div class="preview-status" id="fit-status">LUT를 불러오면 Basic Correction 유사값을 추정합니다.</div>
         <div class="preview-grid">
           <figure class="preview-panel">
             <canvas id="preview-input-canvas"></canvas>
@@ -580,6 +582,12 @@
           <div class="metric"><div class="k">최대 픽셀 변화</div><div class="v" id="preview-metric-max">-</div></div>
           <div class="metric"><div class="k">렌더 크기</div><div class="v" id="preview-metric-size">-</div></div>
         </div>
+        <div class="metrics-grid preview-metrics">
+          <div class="metric"><div class="k">슬라이더 피팅 RMSE</div><div class="v" id="fit-metric-rmse">-</div></div>
+          <div class="metric"><div class="k">회색축 RMSE</div><div class="v" id="fit-metric-gray-rmse">-</div></div>
+          <div class="metric"><div class="k">피팅 샘플 수</div><div class="v" id="fit-metric-samples">-</div></div>
+          <div class="metric"><div class="k">한계값 도달</div><div class="v" id="fit-metric-limits">-</div></div>
+        </div>
       </div>
     </div>
 
@@ -590,24 +598,43 @@
 const PARAMS = {
   temperature: {label:'Temperature', min:-100, max:100, value:-1.9, digits:1},
   tint:        {label:'Tint',        min:-100, max:100, value:-6.8, digits:1},
+  saturation:  {label:'Saturation',  min:0,    max:200, value:109.6,digits:1},
   exposure:    {label:'Exposure',    min:-5,   max:5,   value:0.1,  digits:2},
   contrast:    {label:'Contrast',    min:-100, max:100, value:50.9, digits:1},
   highlights:  {label:'Highlights',  min:-100, max:100, value:-41.1,digits:1},
   shadows:     {label:'Shadows',     min:-100, max:100, value:-100.0,digits:1, pinned:true},
   whites:      {label:'Whites',      min:-100, max:100, value:-5.2, digits:1},
   blacks:      {label:'Blacks',      min:-100, max:100, value:2.9,  digits:1},
-  saturation:  {label:'Saturation',  min:0,    max:200, value:109.6,digits:1},
 };
+const CONTROL_RENDERERS = {};
 
 function toggleSection(id){
   document.getElementById(id).classList.toggle('collapsed');
 }
 
+function renderControlValue(key){
+  const p = PARAMS[key];
+  const row = document.getElementById('row-'+key);
+  if (!row) return;
+  const center = (p.min+p.max)/2;
+  const pct = v => ((v-p.min)/(p.max-p.min))*100;
+  const fill = row.querySelector('.slider-fill');
+  const handle = row.querySelector('.slider-handle');
+  const input = row.querySelector('.numbox');
+  if (!fill || !handle || !input) return;
+  const v = PARAMS[key].value;
+  const vp = pct(v), cp = pct(center);
+  const left = Math.min(vp,cp), width = Math.abs(vp-cp);
+  fill.style.left = left+'%';
+  fill.style.width = width+'%';
+  handle.style.left = vp+'%';
+  input.value = v.toFixed(p.digits);
+  input.classList.toggle('pinned', !!p.pinned);
+}
+
 function buildRow(key){
   const p = PARAMS[key];
   const row = document.getElementById('row-'+key);
-  const center = (p.min+p.max)/2;
-  const pct = v => ((v-p.min)/(p.max-p.min))*100;
 
   row.innerHTML = `
     <div class="ctrl-label">${p.label}</div>
@@ -621,18 +648,8 @@ function buildRow(key){
   `;
 
   const wrap = row.querySelector('.slider-wrap');
-  const fill = row.querySelector('.slider-fill');
-  const handle = row.querySelector('.slider-handle');
-
-  function render(){
-    const v = PARAMS[key].value;
-    const vp = pct(v), cp = pct(center);
-    const left = Math.min(vp,cp), width = Math.abs(vp-cp);
-    fill.style.left = left+'%';
-    fill.style.width = width+'%';
-    handle.style.left = vp+'%';
-  }
-  render();
+  CONTROL_RENDERERS[key] = () => renderControlValue(key);
+  renderControlValue(key);
 
   function setFromClientX(clientX){
     const rect = wrap.getBoundingClientRect();
@@ -640,8 +657,8 @@ function buildRow(key){
     frac = Math.max(0,Math.min(1,frac));
     let v = p.min + frac*(p.max-p.min);
     PARAMS[key].value = v;
-    row.querySelector('.numbox').value = v.toFixed(p.digits);
-    render();
+    PARAMS[key].pinned = false;
+    renderControlValue(key);
   }
 
   wrap.addEventListener('pointerdown', e=>{
@@ -659,6 +676,23 @@ function buildRow(key){
 }
 
 Object.keys(PARAMS).forEach(buildRow);
+
+window.applyFittedLumetri = function(fitted, meta){
+  Object.keys(fitted).forEach(key=>{
+    if (!PARAMS[key]) return;
+    const p = PARAMS[key];
+    const raw = Number(fitted[key]);
+    const value = Math.max(p.min, Math.min(p.max, raw));
+    p.value = value;
+    p.pinned = Math.abs(value-p.min) < 0.05 || Math.abs(value-p.max) < 0.05;
+    renderControlValue(key);
+  });
+  document.getElementById('shadow-pin-note').style.display = PARAMS.shadows.pinned ? 'block' : 'none';
+  const lutName = document.getElementById('input-lut-name');
+  if (lutName && meta && meta.cubeName) {
+    lutName.textContent = meta.cubeName.length > 20 ? meta.cubeName.slice(0, 19)+'…' : meta.cubeName;
+  }
+};
 
 // shadows pin note visibility
 document.getElementById('shadow-pin-note').style.display = PARAMS.shadows.pinned ? 'block' : 'none';

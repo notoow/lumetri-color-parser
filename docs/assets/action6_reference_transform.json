@@ -1,5 +1,5 @@
 {
-  "cube_path": ".cube\\[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube",
+  "cube_path": ".cube\\[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube",
   "lut_size": 33,
   "note": "Patch values are normalized LUT-domain RGB samples. Gray 18% here means code value 0.18, not a camera-log middle-gray calibration.",
   "patches": [

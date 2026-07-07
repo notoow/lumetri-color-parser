@@ -1,15 +1,20 @@
 (function () {
-  const DEMO_CUBE_FILENAME = "[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube";
-  const DEMO_CUBE_URL = `.cube/${encodeURIComponent(DEMO_CUBE_FILENAME)}`;
+  const DEMO_CUBE_URL = ".cube/[osmoaction6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube";
   const DEMO_IMAGE_URL = "docs/assets/representative_photo_input.png";
+  const DEMO_FIT_URL = "docs/assets/action6_fit_summary.json";
   const MAX_PREVIEW_WIDTH = 720;
   const DIFF_GAIN = 4.0;
+  const PARAM_ORDER = ["exposure", "contrast", "highlights", "shadows", "whites", "blacks", "temperature", "tint", "saturation"];
+  const PARAM_LOW = [-5, -100, -100, -100, -100, -100, -100, -100, 0];
+  const PARAM_HIGH = [5, 100, 100, 100, 100, 100, 100, 100, 200];
+  const PARAM_START = [0, 0, 0, 0, 0, 0, 0, 0, 100];
 
   const state = {
     cube: null,
     cubeName: "",
     image: null,
     imageName: "",
+    fitting: false,
   };
 
   function $(id) {
@@ -18,6 +23,15 @@
 
   function setStatus(message, tone) {
     const status = $("preview-status");
+    if (!status) {
+      return;
+    }
+    status.textContent = message;
+    status.dataset.tone = tone || "neutral";
+  }
+
+  function setFitStatus(message, tone) {
+    const status = $("fit-status");
     if (!status) {
       return;
     }
@@ -154,6 +168,252 @@
     return out;
   }
 
+  function buildFitSamples(graySteps = 60, gridSteps = 9) {
+    const samples = [];
+    for (let index = 0; index < graySteps; index += 1) {
+      const value = index / (graySteps - 1);
+      samples.push([value, value, value]);
+      samples.push([value, value, value]);
+    }
+
+    for (let b = 0; b < gridSteps; b += 1) {
+      for (let g = 0; g < gridSteps; g += 1) {
+        for (let r = 0; r < gridSteps; r += 1) {
+          samples.push([
+            r / (gridSteps - 1),
+            g / (gridSteps - 1),
+            b / (gridSteps - 1),
+          ]);
+        }
+      }
+    }
+    return samples;
+  }
+
+  function exposureValue(value, exposure) {
+    const x = Math.max(0, value);
+    const gain = 2 ** exposure;
+    if (exposure >= 0) {
+      return 1 - ((1 - Math.min(x, 1)) ** gain);
+    }
+    return x * gain;
+  }
+
+  function contrastValue(value, contrast) {
+    const k = (contrast / 100) * 4;
+    if (Math.abs(k) < 1e-6) {
+      return value;
+    }
+    const sig = (input) => 1 / (1 + Math.exp(-k * (input - 0.5) * 2));
+    const y0 = sig(0);
+    const y1 = sig(1);
+    return (sig(value) - y0) / (y1 - y0);
+  }
+
+  function applyLumetri(rgb, params) {
+    let r = rgb[0];
+    let g = rgb[1];
+    let b = rgb[2];
+    const exposure = params[0];
+    const contrast = params[1];
+    const highlights = params[2] / 100;
+    const shadows = params[3] / 100;
+    const whites = params[4] / 100;
+    const blacks = params[5] / 100;
+    const temperature = params[6] / 100;
+    const tint = params[7] / 100;
+    const saturation = params[8] / 100;
+
+    r = exposureValue(r, exposure);
+    g = exposureValue(g, exposure);
+    b = exposureValue(b, exposure);
+
+    r = contrastValue(r, contrast);
+    g = contrastValue(g, contrast);
+    b = contrastValue(b, contrast);
+
+    let wr = 1 / (1 + Math.exp(-8 * (r - 0.6)));
+    let wg = 1 / (1 + Math.exp(-8 * (g - 0.6)));
+    let wb = 1 / (1 + Math.exp(-8 * (b - 0.6)));
+    r += highlights * 0.4 * wr * (1 - r);
+    g += highlights * 0.4 * wg * (1 - g);
+    b += highlights * 0.4 * wb * (1 - b);
+
+    wr = 1 / (1 + Math.exp(8 * (r - 0.4)));
+    wg = 1 / (1 + Math.exp(8 * (g - 0.4)));
+    wb = 1 / (1 + Math.exp(8 * (b - 0.4)));
+    r += shadows * 0.4 * wr * r;
+    g += shadows * 0.4 * wg * g;
+    b += shadows * 0.4 * wb * b;
+
+    r *= 1 + whites * 0.5;
+    g *= 1 + whites * 0.5;
+    b *= 1 + whites * 0.5;
+
+    if (blacks >= 0) {
+      r += blacks * 0.25 * Math.exp(-8 * r);
+      g += blacks * 0.25 * Math.exp(-8 * g);
+      b += blacks * 0.25 * Math.exp(-8 * b);
+    } else {
+      r *= 1 + blacks * 0.5;
+      g *= 1 + blacks * 0.5;
+      b *= 1 + blacks * 0.5;
+    }
+
+    r = Math.max(0, r);
+    g = Math.max(0, g);
+    b = Math.max(0, b);
+
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    r = luma + (r - luma) * saturation;
+    g = luma + (g - luma) * saturation;
+    b = luma + (b - luma) * saturation;
+
+    r = r * (1 + temperature * 0.25) + tint * 0.12;
+    g = g - tint * 0.15;
+    b = b * (1 - temperature * 0.25) + tint * 0.12;
+
+    return [r, g, b];
+  }
+
+  function scoreParams(params, samples, targets) {
+    let total = 0;
+    for (let index = 0; index < samples.length; index += 1) {
+      const pred = applyLumetri(samples[index], params);
+      const target = targets[index];
+      const dr = pred[0] - target[0];
+      const dg = pred[1] - target[1];
+      const db = pred[2] - target[2];
+      total += dr * dr + dg * dg + db * db;
+    }
+    return total / (samples.length * 3);
+  }
+
+  function fitLumetriToCube(cube) {
+    const samples = buildFitSamples();
+    const targets = samples.map((sample) => sampleCube(cube, sample));
+    const grayCount = 120;
+    const starts = [
+      PARAM_START,
+      [0, 50, -40, -100, -5, 3, -2, -7, 110],
+      [0, 50, -75, -100, 0, 0, 0, 0, 110],
+      [0, 25, 0, -75, 0, 0, 0, 0, 100],
+    ];
+
+    let params = PARAM_START.slice();
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (const start of starts) {
+      const candidateParams = start.slice();
+      const steps = [0.5, 25, 25, 25, 25, 25, 25, 25, 25];
+      let candidateScore = scoreParams(candidateParams, samples, targets);
+
+      for (let level = 0; level < 8; level += 1) {
+        let changed = true;
+        let loops = 0;
+        while (changed && loops < 5) {
+          changed = false;
+          loops += 1;
+          for (let i = 0; i < candidateParams.length; i += 1) {
+            const trialValues = [candidateParams[i] + steps[i], candidateParams[i] - steps[i]];
+            for (const trialValue of trialValues) {
+              const nextValue = Math.max(PARAM_LOW[i], Math.min(PARAM_HIGH[i], trialValue));
+              if (Math.abs(nextValue - candidateParams[i]) < 1e-9) {
+                continue;
+              }
+              const trial = candidateParams.slice();
+              trial[i] = nextValue;
+              const trialScore = scoreParams(trial, samples, targets);
+              if (trialScore + 1e-12 < candidateScore) {
+                candidateParams[i] = nextValue;
+                candidateScore = trialScore;
+                changed = true;
+              }
+            }
+          }
+        }
+        for (let i = 0; i < steps.length; i += 1) {
+          steps[i] *= 0.5;
+        }
+      }
+
+      if (candidateScore < bestScore) {
+        params = candidateParams;
+        bestScore = candidateScore;
+      }
+    }
+
+    params[PARAM_ORDER.indexOf("contrast")] = Math.abs(params[PARAM_ORDER.indexOf("contrast")]);
+    const allRmse = Math.sqrt(scoreParams(params, samples, targets));
+    const grayRmse = Math.sqrt(scoreParams(params, samples.slice(0, grayCount), targets.slice(0, grayCount)));
+    const fitted = {};
+    const limited = [];
+    PARAM_ORDER.forEach((name, index) => {
+      fitted[name] = params[index];
+      if (Math.abs(params[index] - PARAM_LOW[index]) < 0.1 || Math.abs(params[index] - PARAM_HIGH[index]) < 0.1) {
+        limited.push(name);
+      }
+    });
+
+    return {
+      fitted,
+      allRmse,
+      grayRmse,
+      sampleCount: samples.length,
+      limited,
+    };
+  }
+
+  function renderFitResult(result) {
+    if (window.applyFittedLumetri) {
+      window.applyFittedLumetri(result.fitted, { cubeName: state.cubeName });
+    }
+    setMetric("fit-metric-rmse", `${(result.allRmse * 255).toFixed(1)} / 255`);
+    setMetric("fit-metric-gray-rmse", `${(result.grayRmse * 255).toFixed(1)} / 255`);
+    setMetric("fit-metric-samples", `${result.sampleCount}`);
+    setMetric("fit-metric-limits", result.limited.length ? result.limited.join(", ") : "없음");
+    setFitStatus("Basic Correction 유사 슬라이더값을 왼쪽 패널에 반영했습니다.", "ok");
+  }
+
+  function fitResultFromSummary(summary) {
+    const fitted = summary.fitted || {};
+    const limited = [];
+    PARAM_ORDER.forEach((name, index) => {
+      const value = Number(fitted[name]);
+      if (Number.isFinite(value) && (Math.abs(value - PARAM_LOW[index]) < 0.1 || Math.abs(value - PARAM_HIGH[index]) < 0.1)) {
+        limited.push(name);
+      }
+    });
+    return {
+      fitted,
+      allRmse: (summary.rmse && Number(summary.rmse.all)) || 0,
+      grayRmse: (summary.rmse && Number(summary.rmse.gray)) || 0,
+      sampleCount: Number(summary.sample_count) || 0,
+      limited,
+    };
+  }
+
+  function analyzeCurrentCube() {
+    if (!state.cube) {
+      setFitStatus("먼저 .cube LUT를 불러와 주세요.", "warn");
+      return;
+    }
+    if (state.fitting) {
+      return;
+    }
+    state.fitting = true;
+    setFitStatus("슬라이더 피팅 중...");
+    window.setTimeout(() => {
+      try {
+        renderFitResult(fitLumetriToCube(state.cube));
+      } catch (error) {
+        setFitStatus(error.message, "warn");
+      } finally {
+        state.fitting = false;
+      }
+    }, 20);
+  }
+
   function loadImageFromUrl(url) {
     return new Promise((resolve, reject) => {
       const image = new Image();
@@ -274,9 +534,10 @@
   async function loadDemo() {
     try {
       setStatus("데모 로딩 중...");
-      const [cubeResponse, image] = await Promise.all([
+      const [cubeResponse, image, fitResponse] = await Promise.all([
         fetch(DEMO_CUBE_URL),
         loadImageFromUrl(DEMO_IMAGE_URL),
+        fetch(DEMO_FIT_URL),
       ]);
       if (!cubeResponse.ok) {
         throw new Error(`데모 LUT를 불러오지 못했습니다. HTTP ${cubeResponse.status}`);
@@ -286,6 +547,11 @@
       state.image = image;
       state.imageName = "Representative photo";
       renderPreview();
+      if (fitResponse.ok) {
+        renderFitResult(fitResultFromSummary(await fitResponse.json()));
+      } else {
+        analyzeCurrentCube();
+      }
     } catch (error) {
       setStatus(`${error.message} 직접 파일을 선택해 주세요.`, "warn");
     }
@@ -299,6 +565,7 @@
     state.cube = parseCube(await file.text());
     state.cubeName = file.name;
     renderPreview();
+    analyzeCurrentCube();
   }
 
   async function handleImageFile(file) {
@@ -316,7 +583,8 @@
     const imageInput = $("preview-image-file");
     const demoButton = $("preview-demo-button");
     const renderButton = $("preview-render-button");
-    if (!lutInput || !imageInput || !demoButton || !renderButton) {
+    const fitButton = $("preview-fit-button");
+    if (!lutInput || !imageInput || !demoButton || !renderButton || !fitButton) {
       return;
     }
 
@@ -328,6 +596,7 @@
     });
     demoButton.addEventListener("click", () => loadDemo());
     renderButton.addEventListener("click", () => renderPreview());
+    fitButton.addEventListener("click", () => analyzeCurrentCube());
     loadDemo();
   }
 
