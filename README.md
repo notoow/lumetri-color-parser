@@ -44,6 +44,7 @@ pip install -r requirements.txt
 python fit_lut.py ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube"
 python make_chart.py
 python make_reference_chart.py ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" -o docs/assets/action6_reference_transform.png --summary docs/assets/action6_reference_transform.json
+python make_photo_preview.py docs/assets/representative_photo_input.png ".cube/[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube" --fit-summary outputs/fit_summary.json -o docs/assets/action6_representative_photo_comparison.png --output-json docs/assets/action6_representative_photo_comparison.json --lut-output docs/assets/action6_representative_photo_lut.png --lumetri-output docs/assets/action6_representative_photo_lumetri.png
 ```
 
 Generated files are written to `outputs/`:
@@ -60,6 +61,12 @@ There is no single universal RGB value for a physical 18% gray card inside a cam
 
 ![Reference RGB patches through the Action 6 LUT](docs/assets/action6_reference_transform.png)
 
+## Representative Photo Preview
+
+For human visual judgment, this synthetic reference photo includes skin tone, a gray card, sky, foliage, white and black objects, warm wood, and saturated color blocks. The preview applies the LUT to the image's RGB code values, so it is a practical visual diagnostic rather than a camera-calibrated D-LogM capture.
+
+![Representative photo through the Action 6 LUT](docs/assets/action6_representative_photo_comparison.png)
+
 ## Files
 
 - `lut_parser.py` - `.cube` parser and trilinear sampler.
@@ -67,5 +74,6 @@ There is no single universal RGB value for a physical 18% gray card inside a cam
 - `fit_lut.py` - least-squares fitting CLI.
 - `make_chart.py` - diagnostic chart generator.
 - `make_reference_chart.py` - before/after reference RGB patch chart generator.
+- `make_photo_preview.py` - representative photo before/after comparison generator.
 - `lumetri_decoder_prototype.html` - static UI prototype.
 - `.cube/` - sample LUTs used for experiments.

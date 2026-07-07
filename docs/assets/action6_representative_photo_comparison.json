@@ -1,0 +1,30 @@
+{
+  "source_path": "docs\\assets\\representative_photo_input.png",
+  "cube_path": ".cube\\[오즈모액션6] DJI OSMO Action 6 D-LogM to Rec.709 LUT-11.17.cube",
+  "fit_summary_path": "outputs\\fit_summary.json",
+  "preview_note": "Synthetic reference photo generated for visual judgment. RGB values are treated as LUT-domain code values, not as a camera-calibrated D-LogM capture.",
+  "image_shape": [
+    800,
+    1200,
+    3
+  ],
+  "lut_vs_input_rmse": 0.06805732843598791,
+  "lut_vs_input_rmse_8bit": 17.35461875117692,
+  "lumetri_vs_lut_rmse": 0.04314936663651175,
+  "lumetri_vs_lut_rmse_8bit": 11.003088492310496,
+  "mean_lut_delta_rgb": [
+    -0.008803979705530134,
+    -0.025094582204267697,
+    -0.053284883184419506
+  ],
+  "mean_lumetri_delta_rgb": [
+    -0.027631772508215108,
+    -0.00901673120217006,
+    -0.013764395144117663
+  ],
+  "outputs": {
+    "comparison": "docs\\assets\\action6_representative_photo_comparison.png",
+    "lut": "docs\\assets\\action6_representative_photo_lut.png",
+    "lumetri": "docs\\assets\\action6_representative_photo_lumetri.png"
+  }
+}
