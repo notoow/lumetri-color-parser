@@ -1,12 +1,12 @@
 # lumetri-color-parser
 
-Experimental tooling for fitting a 3D `.cube` LUT to an approximate Adobe Premiere Pro Lumetri Color **Basic Correction** slider model.
+Experimental tooling for inspecting a 3D `.cube` LUT and testing whether it can be roughly approximated by an Adobe Premiere Pro Lumetri Color **Basic Correction**-style model.
 
 Live prototype: https://notoow.github.io/lumetri-color-parser/
 
-The current prototype parses 3D LUTs, samples a gray ramp plus RGB grid, fits nine Lumetri-like parameters with least squares, and generates a diagnostic chart showing tone-curve and chroma-related error.
+The current prototype parses 3D LUTs, samples a gray ramp plus RGB grid, fits nine Lumetri-like parameters with least squares, and generates diagnostic charts showing tone-curve and chroma-related error. The fit is a feasibility diagnostic, not a conversion from LUT to real Premiere slider settings.
 
-The hosted prototype also includes a browser-only LUT photo preview workbench: load the demo, or choose your own `.cube` and image file to inspect input, LUT output, and an amplified difference view.
+The hosted prototype also includes a browser-only LUT photo preview workbench: load the demo, or choose your own `.cube` and image file to inspect input, LUT output, an amplified difference view, and whether Basic Correction is a poor substitute.
 
 ## What It Does
 
@@ -28,7 +28,9 @@ The hosted prototype also includes a browser-only LUT photo preview workbench: l
 
 ## Important Caveat
 
-This is a best-effort approximation, not an Adobe-authored reverse-engineering of Premiere internals.
+This is a best-effort diagnostic, not an Adobe-authored reverse-engineering of Premiere internals.
+
+Premiere's `Input LUT` / `Look` slot applies a separate LUT transform layer. Loading a `.cube` does not set Exposure, Contrast, Highlights, Shadows, or other Basic Correction sliders. For camera transform LUTs such as D-LogM to Rec.709, Basic Correction sliders usually cannot reproduce the same result.
 
 Complex camera transform LUTs such as Log to Rec.709 often exceed what Basic Correction sliders can express. In those cases, the output is useful as the nearest Basic Correction-style estimate, not as exact LUT reconstruction.
 

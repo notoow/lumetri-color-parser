@@ -372,7 +372,11 @@
     setMetric("fit-metric-gray-rmse", `${(result.grayRmse * 255).toFixed(1)} / 255`);
     setMetric("fit-metric-samples", `${result.sampleCount}`);
     setMetric("fit-metric-limits", result.limited.length ? result.limited.join(", ") : "없음");
-    setFitStatus("Basic Correction 유사 슬라이더값을 왼쪽 패널에 반영했습니다.", "ok");
+    if (result.limited.length || result.allRmse * 255 > 6) {
+      setFitStatus("Basic Correction만으로는 이 LUT를 대체하기 어렵습니다. 왼쪽 값은 진단용 근사입니다.", "warn");
+    } else {
+      setFitStatus("낮은 오차의 진단용 근사값을 왼쪽 패널에 반영했습니다.", "ok");
+    }
   }
 
   function fitResultFromSummary(summary) {
@@ -402,7 +406,7 @@
       return;
     }
     state.fitting = true;
-    setFitStatus("슬라이더 피팅 중...");
+    setFitStatus("Basic Correction 대체 가능성 분석 중...");
     window.setTimeout(() => {
       try {
         renderFitResult(fitLumetriToCube(state.cube));
