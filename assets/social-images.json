@@ -1,0 +1,13 @@
+{
+  "policy": "Korean pages use ko; all other page languages use en. Titles and descriptions retain the page language.",
+  "ko": {
+    "width": 1730,
+    "height": 909,
+    "url": "https://notoow.github.io/lumetri-color-parser/assets/lumetri-color-parser-og-5c3c9b8cf1f2.jpg"
+  },
+  "en": {
+    "width": 1730,
+    "height": 909,
+    "url": "https://notoow.github.io/lumetri-color-parser/assets/lumetri-color-parser-og-en-0156ff80f174.jpg"
+  }
+}
